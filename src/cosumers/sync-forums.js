@@ -2,6 +2,7 @@ const { DB, WebModel, ForumModel } = require("../db");
 const { WebTreTho, LamChaMe } = require("../pages");
 
 async function syncForums(data, channel, message) {
+  return;
   const webtretho = new WebTreTho();
   const lamchame = new LamChaMe();
 

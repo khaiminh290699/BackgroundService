@@ -1,4 +1,4 @@
-const { DB, PostModel, Model, ProgressingModel, PostingStatusModel, SettingModel } = require("../db");
+const { DB, SettingModel } = require("../db");
 const { WebTreTho, LamChaMe } = require("../pages");
 const { Socket } = require("../ultilities");
 
@@ -11,7 +11,7 @@ async function timerPosting(data, channel, message) {
   const webtretho = new WebTreTho();
   const lamchame = new LamChaMe();
 
-  const posts = await settingModel.query().where({ timer_setting: timer_at })
+  const posts = await settingModel.query()
     .select(
       settingModel.DB.raw(`
         posts.id AS post_id,
@@ -27,6 +27,7 @@ async function timerPosting(data, channel, message) {
       `)
     )
     .joinRaw(`
+      JOIN timer_setting ON ( timer_setting.setting_id = settings.id )
       JOIN posts ON ( posts.id = settings.post_id )
       JOIN accounts ON ( accounts.id = settings.account_id )
       JOIN post_forum ON ( post_forum.post_id = posts.id )
@@ -36,7 +37,9 @@ async function timerPosting(data, channel, message) {
     .whereRaw(`
       accounts.disable = false
       AND posts.is_deleted = false
-    `)
+      AND timer_setting.from_date <= NOW()::DATE AND timer_setting.to_date >= NOW()::DATE
+      AND timer_setting.timer_at = :timer_at
+    `, { timer_at })
     .orderByRaw(`
       webs.id,
       accounts.id

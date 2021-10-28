@@ -52,7 +52,6 @@ class WebTreTho {
     const postingStatusModel = new PostingStatusModel(db);
     try {
       for (let i = 0; i < posts.length; i++) {
-      
         const { title, account_id, content, forum_url, username, password, setting_id, forum_id } = posts[i];
         let posting = null;
         try {
@@ -95,7 +94,7 @@ class WebTreTho {
               const postingStatusModel = new PostingStatusModel(db, trx);
   
               progressing.progressing_amount += 1;
-              await progressingModel.updateOne(progressing);
+              await progressingModel.query().update({ progressing_amount: progressing.progressing_amount }).where({ id: progressing.id });
               const [ postingStatus ] = await postingStatusModel.query().update({ status: "success", message: `Success at ${moment(new Date()).format("HH:MM:SS DD/MM.YYYY")}` }).where({ progressing_id: progressing.id, setting_id, forum_id }).returning(["*"]);
               posting = postingStatus;
             })
@@ -111,20 +110,20 @@ class WebTreTho {
           }
         }
 
-        if (socket) {
-          if (progressing) {
-            socket.emit("progressing", { ...progressing, postingStatus: posting });
-          } else {
-            socket.emit("timer_posting", { postingStatus: posting })
-          }
-        } 
-
         if (progressing) {
           const progressingModel = new ProgressingModel(db);
           let progressingStatus = await progressingModel.findOne({ id: progressing.id });
+          progressing.status = progressingStatus.status;
+          if (socket) {
+            socket.emit("progressing", { ...progressing, postingStatus: posting })
+          } 
           if (progressingStatus.status != "progressing") {
             return false;
           }
+        } else {
+          if (socket) {
+            socket.emit("timer_posting", { postingStatus: posting })
+          } 
         }
       }
       return true;

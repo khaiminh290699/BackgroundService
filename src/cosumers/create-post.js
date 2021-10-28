@@ -16,7 +16,7 @@ async function createPost(data, channel, message) {
   let progressing = await progressingModel.findOne({ id });
 
   if (progressing.status != "waiting") {
-    await channel.ack(message);
+    return await channel.ack(message);
   }
 
   progressing.status = "progressing";
@@ -60,15 +60,12 @@ async function createPost(data, channel, message) {
       webs.id,
       accounts.id
     `)
-  
-    if (await lamchame.post(posts.filter((post) => post.web_key === lamchame.key), progressing, db, socket) ) {
-      let progressing = await progressingModel.findOne({ id });
-      await socket.emit("progressing", { ...progressing }, async () => { await socket.close(); });
+
+    if (!await lamchame.post(posts.filter((post) => post.web_key === lamchame.key), progressing, db, socket) ) {
       return;
     }
-    if (await webtretho.post(posts.filter((post) => post.web_key === webtretho.key), progressing, db, socket)) {
-      let progressing = await progressingModel.findOne({ id });
-      await socket.emit("progressing", { ...progressing }, async () => { await socket.close(); });
+
+    if (!await webtretho.post(posts.filter((post) => post.web_key === webtretho.key), progressing, db, socket)) {
       return;
     }
   
