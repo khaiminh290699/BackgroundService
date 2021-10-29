@@ -1,4 +1,4 @@
-const { DB, PostModel, ProgressingModel } = require("../db");
+const { DB, ModelPost, ModelProgressing } = require("../db");
 const { WebTreTho, LamChaMe } = require("../pages");
 const { Socket } = require("../ultilities");
 
@@ -9,18 +9,18 @@ async function createPost(data, channel, message) {
   const webtretho = new WebTreTho();
   const lamchame = new LamChaMe();
 
-  const postModel = new PostModel(db);
-  const progressingModel = new ProgressingModel(db);
+  const modelPost = new ModelPost(db);
+  const modelProgressing = new ModelProgressing(db);
   
 
-  let progressing = await progressingModel.findOne({ id });
+  let progressing = await modelProgressing.findOne({ id });
 
   if (progressing.status != "waiting") {
     return await channel.ack(message);
   }
 
   progressing.status = "progressing";
-  await progressingModel.updateOne(progressing);
+  await modelProgressing.updateOne(progressing);
 
   const io = new Socket();
   const socket = await io.connect("users", "token");
@@ -28,9 +28,9 @@ async function createPost(data, channel, message) {
   await socket.emit("progressing", { ...progressing, isStarted: true });
 
   try {
-    const posts = await postModel.query()
+    const posts = await modelPost.query()
     .select(
-      postModel.DB.raw(`
+      modelPost.DB.raw(`
         posts.id AS post_id,
         posts.title,
         posts.content,
@@ -70,12 +70,12 @@ async function createPost(data, channel, message) {
     }
   
     progressing.status = "success";
-    await progressingModel.updateOne(progressing);
+    await modelProgressing.updateOne(progressing);
     await socket.emit("progressing", { ...progressing }, async () => { await socket.close(); });
   } catch (err) {
     console.log(err);
     progressing.status = "fail";
-    await progressingModel.updateOne(progressing);
+    await modelProgressing.updateOne(progressing);
     await socket.emit("progressing", { ...progressing }, async () => { await socket.close(); });
   } finally {
     await db.DB.destroy();

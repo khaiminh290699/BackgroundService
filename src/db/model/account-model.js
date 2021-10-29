@@ -1,7 +1,7 @@
 const Model = require(".");
 
-class AccountModel extends Model {
+class ModelAccount extends Model {
   tableName = "accounts";
 }
 
-module.exports = AccountModel;
+module.exports = ModelAccount;

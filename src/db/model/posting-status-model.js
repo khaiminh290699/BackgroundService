@@ -1,7 +1,7 @@
 const Model = require(".");
 
-class PostingStatusModel extends Model {
+class ModelPostingStatus extends Model {
   tableName = "posting_status";
 }
 
-module.exports = PostingStatusModel;
+module.exports = ModelPostingStatus;

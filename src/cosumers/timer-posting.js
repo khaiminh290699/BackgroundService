@@ -1,4 +1,4 @@
-const { DB, SettingModel } = require("../db");
+const { DB, ModelSetting } = require("../db");
 const { WebTreTho, LamChaMe } = require("../pages");
 const { Socket } = require("../ultilities");
 
@@ -6,14 +6,14 @@ async function timerPosting(data, channel, message) {
   const { timer_at } = data;
 
   const db = new DB();
-  const settingModel = new SettingModel(db);
+  const modelSetting = new ModelSetting(db);
 
   const webtretho = new WebTreTho();
   const lamchame = new LamChaMe();
 
-  const posts = await settingModel.query()
+  const posts = await modelSetting.query()
     .select(
-      settingModel.DB.raw(`
+      modelSetting.DB.raw(`
         posts.id AS post_id,
         posts.title,
         posts.content,

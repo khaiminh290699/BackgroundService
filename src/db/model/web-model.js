@@ -1,7 +1,7 @@
 const Model = require("./index");
 
-class WebModel extends Model {
+class ModelWeb extends Model {
   tableName = "webs";
 }
 
-module.exports = WebModel;
+module.exports = ModelWeb;

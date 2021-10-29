@@ -1,7 +1,7 @@
 const Model = require(".");
 
-class ProgressingModel extends Model {
+class ModelProgressing extends Model {
   tableName = "progressings";
 }
 
-module.exports = ProgressingModel;
+module.exports = ModelProgressing;

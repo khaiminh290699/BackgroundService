@@ -1,7 +1,7 @@
 const moment = require("moment");
 const { Builder, By, until, Key } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
-const { ProgressingModel, PostingStatusModel, Model } = require("../db");
+const { ModelProgressing, ModelPostingStatus, Model } = require("../db");
 
 class LamChaMe{
 
@@ -47,7 +47,7 @@ class LamChaMe{
   }
 
   post = async (posts, progressing, db, socket) => {
-    const postingStatusModel = new PostingStatusModel(db);
+    const modelPostingStatus = new ModelPostingStatus(db);
     try {
       for (let i = 0; i < posts.length; i++) {
         const { account_id, title, content, username, password, forum_url, setting_id, forum_id } = posts[i];
@@ -83,23 +83,23 @@ class LamChaMe{
           if (progressing) {
             const model = new Model(db);
             await model.openTransaction(async (trx) => {
-              const progressingModel = new ProgressingModel(db, trx);
-              const postingStatusModel = new PostingStatusModel(db, trx);
+              const modelProgressing = new ModelProgressing(db, trx);
+              const modelPostingStatus = new ModelPostingStatus(db, trx);
   
               progressing.progressing_amount += 1;
-              await progressingModel.query().update({ progressing_amount: progressing.progressing_amount }).where({ id: progressing.id });
-              const [ postingStatus ] = await postingStatusModel.query().update({ status: "success", message: `Success at ${moment(new Date()).format("HH:MM:SS DD/MM/YYYY")}` }).where({ progressing_id: progressing.id, setting_id, forum_id }).returning(["*"]);
+              await modelProgressing.query().update({ progressing_amount: progressing.progressing_amount }).where({ id: progressing.id });
+              const [ postingStatus ] = await modelPostingStatus.query().update({ status: "success", message: `Success at ${moment(new Date()).format("HH:MM:SS DD/MM/YYYY")}` }).where({ progressing_id: progressing.id, setting_id, forum_id }).returning(["*"]);
               posting = postingStatus;
             })
           } else {
-            posting = await postingStatusModel.insertOne({ setting_id, forum_id, status: "success", message: `Success`,  posting_type: "timer_post" });
+            posting = await modelPostingStatus.insertOne({ setting_id, forum_id, status: "success", message: `Success`,  posting_type: "timer_post" });
           }
         } catch (err) {
           if (progressing) {
-            const [ postingStatus ] = await postingStatusModel.query().update({ status: "fail", message: `Fail reason ${err.message}` }).where({ setting_id, forum_id, progressing_id: progressing.id }).returning(["*"])
+            const [ postingStatus ] = await modelPostingStatus.query().update({ status: "fail", message: `Fail reason ${err.message}` }).where({ setting_id, forum_id, progressing_id: progressing.id }).returning(["*"])
             posting = postingStatus;
           } else {
-            posting = await postingStatusModel.insertOne({ setting_id, forum_id, status: "fail", message: `Fail reason ${err.message}`,  posting_type: "timer_post" });
+            posting = await modelPostingStatus.insertOne({ setting_id, forum_id, status: "fail", message: `Fail reason ${err.message}`,  posting_type: "timer_post" });
           }
         }
 
@@ -112,8 +112,8 @@ class LamChaMe{
         } 
 
         if (progressing) {
-          const progressingModel = new ProgressingModel(db);
-          let progressingStatus = await progressingModel.findOne({ id: progressing.id });
+          const modelProgressing = new ModelProgressing(db);
+          let progressingStatus = await modelProgressing.findOne({ id: progressing.id });
           progressing.status = progressingStatus.status;
           if (socket) {
             socket.emit("progressing", { ...progressing, postingStatus: posting })

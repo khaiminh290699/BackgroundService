@@ -1,7 +1,7 @@
 const Model = require(".");
 
-class ForumModel extends Model {
+class ModelForum extends Model {
   tableName = "forums";
 }
 
-module.exports = ForumModel;
+module.exports = ModelForum;
