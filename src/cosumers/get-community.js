@@ -1,10 +1,10 @@
 const { DB, ModelForum, ModelWeb } = require("../db");
-const { WebTreTho, LamChaMe } = require("../pages");
+const { WebTreTho, LamChaMe, ChaMeNuoiCon } = require("../pages");
 const { Socket } = require("../ultilities");
 
 async function getCommunity(data, channel, message) {
   const { responseKey, urls = [] } = data;
-  let communities = [], selectedForums = {};
+  let communities = [], selectedForums = {}, notSupporting = [];
 
   const db = new DB();
   const modelWeb = new ModelWeb(db);
@@ -22,31 +22,29 @@ async function getCommunity(data, channel, message) {
 
   const webtretho = new WebTreTho();
   const lamchame = new LamChaMe();
-  communities.push(...await webtretho.getForumByPost(urls.filter((url) => url.includes(webtretho.url))));
-  communities.push(...await lamchame.getForumByPost(urls.filter((url) => url.includes(lamchame.url))));
+  const chamenuoicon = new ChaMeNuoiCon();
 
-  const webs = await modelWeb.query();
+  communities.push(...await webtretho.getForums(urls.filter((url) => url.includes(webtretho.url))));
+  communities.push(...await lamchame.getForums(urls.filter((url) => url.includes(lamchame.url))));
+  communities.push(...await chamenuoicon.getForums(urls.filter((url) => url.includes(chamenuoicon.url))));
   
   for (let i = 0; i < communities.length; i++) {
     const community = communities[i];
     let forum = forums.filter((forum) => forum.forum_url.includes(community.forum_url) || community.forum_url.includes(forum.forum_url))[0];
-    if (!forum) {
-      const web = webs.filter((web) => web.web_key === community.web_key)[0];
-      forum = await modelForum.insertOne({ forum_url: community.forum_url, forum_name: community.forum_name, web_id: web.id });
-      forum.web_key = web.web_key;
-      forum.web_url = web.web_url;
-      forum.web_name = web.web_name;
+    if (forum) {
+      if (!selectedForums[forum.id]) {
+        selectedForums[forum.id] = forum;
+        selectedForums[forum.id].source = [];
+      }
+      selectedForums[forum.id].source.push(community);
+    } else {
+      notSupporting.push(community.forum_url)
     }
-    if (!selectedForums[forum.id]) {
-      selectedForums[forum.id] = forum;
-      selectedForums[forum.id].source = [];
-    }
-    selectedForums[forum.id].source.push(community);
   }
 
   const io = new Socket();
   const socket = await io.connect("users", "token");
-  socket.emit("get_community", { responseKey, communities, selectedForums: Object.values(selectedForums) }, async () => {
+  socket.emit("get_community", { responseKey, communities, selectedForums: Object.values(selectedForums), notSupporting }, async () => {
     await socket.close();
   });
 

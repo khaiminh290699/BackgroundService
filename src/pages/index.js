@@ -5,5 +5,5 @@ const LamChaMe = require("./lamchame");
 module.exports = {
   WebTreTho,
   ChaMeNuoiCon,
-  LamChaMe
+  LamChaMe,
 }

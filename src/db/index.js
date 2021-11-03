@@ -7,6 +7,8 @@ const ModelWeb = require("./model/web-model");
 const ModelForum = require("./model/forum-model");
 const ModelPostingStatus = require("./model/posting-status-model");
 const ModelSetting = require("./model/setting-model");
+const ModelForumSetting = require("./model/forum-setting-model");
+const ModelProgressingPostStatus = require("./model/progressing-post-status-model");
 
 module.exports = {
   DB,
@@ -18,4 +20,6 @@ module.exports = {
   ModelForum,
   ModelPostingStatus,
   ModelSetting,
+  ModelForumSetting,
+  ModelProgressingPostStatus
 }

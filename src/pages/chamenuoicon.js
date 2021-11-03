@@ -1,35 +1,26 @@
 const { Builder, By, until, Key } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
+const Page = require("./page");
 
 require("chromedriver");
 
-class ChaMeNuoiCon {
+class ChaMeNuoiCon extends Page {
+  key = "cha_me_nuoi_con"
   url = `https://diendan.chamenuoicon.com`;
 
   constructor(username, password) {
+    super();
     this.username = username || "KHAIMINH";
     this.password = password || "khaiminh2906";
   };
 
-  init = async () => {
-
-    const options = new chrome.Options();
-    options.addArguments("--disable-notifications");
-    options.addArguments("--disable-popup-blocking"); 
-    options.addArguments("--no-startup-window"); 
-    options.addArguments("--headless");
-
-    this.driver = await new Builder().forBrowser("chrome").build();
-
-  }
-
-  login = async () => {
+  login = async (username, password) => {
     if (!this.driver) {
       await this.init();
     }
     await this.driver.get(`${this.url}/login/`)
-    await this.driver.findElement(By.name("login")).sendKeys(this.username);
-    await this.driver.findElement(By.name("password")).sendKeys(this.password);
+    await this.driver.findElement(By.name("login")).sendKeys(username);
+    await this.driver.findElement(By.name("password")).sendKeys(password);
     await this.driver.findElement(By.className("button--icon--login")).click();
     try {
       await this.driver.wait(until.urlIs(`${this.url}/`), 10000);
@@ -39,37 +30,34 @@ class ChaMeNuoiCon {
     return;
   }
 
-  post = async (post) => {
-    const { title, comunity, content } = post;
-    await this.login();
-    await this.driver.get(`${this.url}/forums/-/post-thread`);
-    await this.driver.wait(until.elementLocated(By.className("contentRow-main")), 5000);
-    const comunityDiv = await this.driver.findElements(By.className("contentRow-main"));
-    let i = 0
-    for (; i < comunityDiv.length; i++) {
-      const text = await comunityDiv[i].getText();
-      if (text.includes(comunity)) {
-        break;
-      }
-    }
+  logout = async () => {
+    const navItems = await this.driver.findElement(By.className("p-navgroup-linkText"));
+    await navItems[0].click();
+    const logout = await this.driver.wait(until.elementLocated(By.xpath("//a[text()='Thoát']")), 5000);
+    await logout.click();
+  }
 
-    const href = await comunityDiv[i].findElement(By.tagName("a")).getAttribute("href");
-    await this.driver.get(href);
+  each = async (post) => {
+    const { title, content, forum_url } = post;
 
-    await this.driver.findElement(By.name("title")).sendKeys(title, Key.TAB);
-    await this.driver.executeScript(`document.querySelector(".fr-element").innerHTML = "${content}"`);
+    await this.driver.get(forum_url);
+
+    const titleInput = await this.driver.wait(until.elementLocated(By.name("title"))); 
+
+    await titleInput.sendKeys(title, Key.TAB);
+    await this.sleep(1000);
+
+    await this.driver.executeScript(`document.querySelector(".fr-element").innerHTML = '${content.replace(/(\r\n|\n|\r)/gm, "")}'`);
     await this.driver.actions({ bridge: false }).keyDown("A").keyUp("A").keyDown(Key.BACK_SPACE).keyUp(Key.BACK_SPACE).perform();
 
-    await this.driver.findElement(By.className("button--icon--write")).click();
-  }
-
-  close = async () => {
-    if (this.driver) {
-      await this.driver.close();
+    if (!post.is_demo) {
+      // await this.driver.findElement(By.className("button--icon--write")).click();
+    } else {
+      // await this.sleep(30000);
     }
   }
-  
-  community = async (urls = []) => {
+
+  getForums = async (urls = []) => {
     if (!urls.length) {
       return [];
     }
@@ -82,12 +70,33 @@ class ChaMeNuoiCon {
       communities.push({
         post_url: urls[i],
         web_url: this.url,
-        community: await element.findElement(By.tagName("span")).getText(),
-        href: await element.getAttribute("href")
+        web_key: this.key,
+        forum_name: await element.findElement(By.tagName("span")).getText(),
+        forum_url: await element.getAttribute("href")
       })
     }
     await this.close();
     return communities;
+  }
+
+  syncForums = async () => {
+    if (!this.driver) {
+      await this.init();
+    }
+    const forums = [];
+    await this.login(this.username, this.password);
+    await this.driver.get(this.url);
+    await this.driver.findElement(By.className("p-title-pageAction")).click();
+
+    const links = await this.driver.wait(until.elementsLocated(By.className("fauxBlockLink-blockLink")));
+    for (let i = 0; i < links.length; i++) {
+      forums.push({
+        forum_url: await links[i].getAttribute("href"),
+        forum_name: await links[i].getText()
+      })
+    }
+    await this.close();
+    return forums;
   }
 }
 

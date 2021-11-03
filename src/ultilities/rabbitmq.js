@@ -17,7 +17,7 @@ class RabbitMQ {
       exchange,
       queue,
       type = "direct",
-      pattern = null
+      pattern = null,
     } = option
     await this.init();
     const channel = await this.connect.createChannel();
@@ -44,8 +44,6 @@ class RabbitMQ {
     const {
       queue,
       autoAck,
-      exchange,
-      pattern
     } = option
     const channel = await this.setup(option)
     await channel.consume(queue, async (message) => {
