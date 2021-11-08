@@ -61,6 +61,8 @@ async function timerPosting(data, channel, message) {
       AND posts.is_deleted = false
       AND timer_setting.from_date <= NOW()::DATE AND timer_setting.to_date >= NOW()::DATE
       AND timer_setting.timer_at = :timer_at
+      AND timer_setting.is_deleted = false
+      AND forum_setting.is_deleted = false
     `, { timer_at })
     .orderByRaw(`
       webs.id,
