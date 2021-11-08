@@ -21,6 +21,7 @@ class RabbitMQ {
     } = option
     await this.init();
     const channel = await this.connect.createChannel();
+    channel.prefetch(1);
     if (exchange) {
       await channel.assertExchange(exchange, type, { durable: true });
       await channel.assertQueue(queue, { durable: true });
