@@ -2,6 +2,7 @@ const { DB, ModelPost, ModelProgressing, Model, ModelPostingStatus, ModelProgres
 const { WebTreTho, LamChaMe, ChaMeNuoiCon } = require("../pages");
 const { Socket } = require("../ultilities");
 const moment = require("moment");
+const WebPage = require("../pages/web-page");
 
 // khi tao moi post hoac bat dau lai tien trinh dang bai => dang lai nhung bai co trang thai loi va dang waiting
 
@@ -9,9 +10,10 @@ async function createPost(data, channel, message) {
   const { progressing: { id } } = data;
   const db = new DB();
 
-  const webtretho = new WebTreTho();
-  const lamchame = new LamChaMe();
-  const chamenuoicon = new ChaMeNuoiCon();
+  // const webtretho = new WebTreTho();
+  // const lamchame = new LamChaMe();
+  // const chamenuoicon = new ChaMeNuoiCon();
+  const page = new WebPage(db);
 
   const modelPost = new ModelPost(db);
   const modelProgressing = new ModelProgressing(db);
@@ -91,7 +93,9 @@ async function createPost(data, channel, message) {
         accounts.id AS account_id,
         accounts.username,
         accounts.password,
+        webs.id AS web_id,
         webs.web_key,
+        webs.web_url,
         forums.id AS forum_id,
         forums.forum_url,
         settings.id AS setting_id,
@@ -125,35 +129,36 @@ async function createPost(data, channel, message) {
       post.content = post.content.replace(":forum_id", forum_id);
       post.content = post.content.replace(":type", "create");
 
-      post.is_demo = true;
-
       return post;
     })
 
-    await webtretho.post(posts.filter((post) => post.web_key === webtretho.key), {
-      callback, error, check
-    })
+    await page.post(posts, { check, callback, error })
+    
 
-    if (progressing.status != "progressing") {
-      return;
-    }
+    // await webtretho.post(posts.filter((post) => post.web_key === webtretho.key), {
+    //   callback, error, check
+    // })
+
+    // if (progressing.status != "progressing") {
+    //   return;
+    // }
 
 
-    await chamenuoicon.post(posts.filter((post) => post.web_key === chamenuoicon.key), {
-      callback, error, check
-    })
+    // await chamenuoicon.post(posts.filter((post) => post.web_key === chamenuoicon.key), {
+    //   callback, error, check
+    // })
 
-    if (progressing.status != "progressing") {
-      return;
-    }
+    // if (progressing.status != "progressing") {
+    //   return;
+    // }
 
-    await lamchame.post(posts.filter((post) => post.web_key === lamchame.key), {
-      callback, error, check
-    })
+    // await lamchame.post(posts.filter((post) => post.web_key === lamchame.key), {
+    //   callback, error, check
+    // })
 
-    if (progressing.status != "progressing") {
-      return;
-    }
+    // if (progressing.status != "progressing") {
+    //   return;
+    // }
   
     progressing.status = "success";
     await modelProgressing.updateOne(progressing);

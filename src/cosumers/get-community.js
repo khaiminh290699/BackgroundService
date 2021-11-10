@@ -1,16 +1,59 @@
 const { DB, ModelForum, ModelWeb } = require("../db");
 const { WebTreTho, LamChaMe, ChaMeNuoiCon } = require("../pages");
+const WebPage = require("../pages/web-page");
 const { Socket } = require("../ultilities");
 
 async function getCommunity(data, channel, message) {
   const { responseKey, urls = [] } = data;
-  let communities = [], selectedForums = {}, notSupporting = [];
+  let communities = [], selectedForums = {}, errorGetForums = [];
 
   const db = new DB();
   const modelWeb = new ModelWeb(db);
   const modelForum = new ModelForum(db);
 
-  const forums = await modelForum.query().join("webs", "webs.id", "forums.web_id").select(
+  // const webtretho = new WebTreTho();
+  // const lamchame = new LamChaMe();
+  // const chamenuoicon = new ChaMeNuoiCon();
+
+  const page = new WebPage(db);
+  let forums = [];
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      const community = await page.forum(urls[i]);
+      if (community) {
+        communities.push(community);
+        if (!forums.some((forum) => forum.forum_url === community.forum_url)) {
+          forums.push({
+            web_id: community.web_id,
+            forum_url: community.forum_url,
+            forum_name: community.forum_name
+          })
+        }
+      }
+    } catch (err) {
+      const strs = urls[i].split("/");
+      const exist = errorGetForums.filter((forum) => forum.web_url === `${strs[0]}//${strs[2]}`)[0];
+      if (exist) {
+        if (!exist.messages.some(message => message === err.message)) {
+          exist.messages.push(err.message)
+        }
+      } else {
+        errorGetForums.push({
+          web_url: `${strs[0]}//${strs[2]}`,
+          messages: [err.message]
+        })
+      }
+
+      console.log(errorGetForums)
+    }
+  }
+
+  await page.close();
+  if (forums.length) {
+    await modelForum.query().insert(forums).onConflict(["forum_url"]).merge().returning(["*"]);
+  }
+  
+  forums = await modelForum.query().join("webs", "webs.id", "forums.web_id").select(
     modelForum.DB.raw(`
       forums.*,
       webs.id AS web_id,
@@ -19,14 +62,10 @@ async function getCommunity(data, channel, message) {
       webs.web_key
     `)
   );
-
-  const webtretho = new WebTreTho();
-  const lamchame = new LamChaMe();
-  const chamenuoicon = new ChaMeNuoiCon();
-
-  communities.push(...await webtretho.getForums(urls.filter((url) => url.includes(webtretho.url))));
-  communities.push(...await lamchame.getForums(urls.filter((url) => url.includes(lamchame.url))));
-  communities.push(...await chamenuoicon.getForums(urls.filter((url) => url.includes(chamenuoicon.url))));
+  
+  // communities.push(...await webtretho.getForums(urls.filter((url) => url.includes(webtretho.url))));
+  // communities.push(...await lamchame.getForums(urls.filter((url) => url.includes(lamchame.url))));
+  // communities.push(...await chamenuoicon.getForums(urls.filter((url) => url.includes(chamenuoicon.url))));
   
   for (let i = 0; i < communities.length; i++) {
     const community = communities[i];
@@ -37,14 +76,12 @@ async function getCommunity(data, channel, message) {
         selectedForums[forum.id].source = [];
       }
       selectedForums[forum.id].source.push(community);
-    } else {
-      notSupporting.push(community.forum_url)
     }
   }
 
   const io = new Socket();
   const socket = await io.connect("users", "token");
-  socket.emit("get_community", { responseKey, communities, selectedForums: Object.values(selectedForums), notSupporting }, async () => {
+  socket.emit("get_community", { responseKey, communities, selectedForums: Object.values(selectedForums), errorGetForums }, async () => {
     await socket.close();
   });
 
