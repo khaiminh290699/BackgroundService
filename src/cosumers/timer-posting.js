@@ -1,4 +1,4 @@
-const { DB, ModelSetting, ModelPostingStatus, Model } = require("../db");
+const { DB, ModelSetting, ModelPostingStatus, Model, ModelTimerStatus } = require("../db");
 const { WebTreTho, LamChaMe, ChaMeNuoiCon } = require("../pages");
 const { Socket } = require("../ultilities");
 const moment = require("moment");
@@ -19,16 +19,20 @@ async function timerPosting(data, channel, message) {
   const callback = async (post) => {
     const { setting_id, forum_id } = post;
     const modelPostingStatus = new ModelPostingStatus(db);
+    const modelTimerStatus = new ModelTimerStatus(db);
     const postingStatus = await modelPostingStatus.insertOne({ setting_id, forum_id, status: "success", message: `Success at ${moment(new Date()).format("HH:MM:SS DD/MM/YYYY")}`,  is_timer: true });
-    socket.emit("timer_posting", { ...postingStatus, keyDate: moment(new Date()).startOf("date").format("DD_MM_YYYY") })
+    await modelTimerStatus.insertOne({ posting_status_id: postingStatus.id, timer_setting_id: post.timer_setting_id })
+    socket.emit("timer_posting", { ...postingStatus, keyDate: moment(new Date()).startOf("date").format("DD_MM_YYYY"), timer_setting_id: post.timer_setting_id  })
 
   }
 
   const error = async (post, err) => {
     const { setting_id, forum_id } = post;
     const modelPostingStatus = new ModelPostingStatus(db);
+    const modelTimerStatus = new ModelTimerStatus(db);
     const postingStatus = posting = await modelPostingStatus.insertOne({ setting_id, forum_id, status: "fail", message: `Fail reason ${err.message}`, is_timer: true });
-    socket.emit("timer_posting", { ...postingStatus, keyDate: moment(new Date()).startOf("date").format("DD_MM_YYYY") })
+    await modelTimerStatus.insertOne({ posting_status_id: postingStatus.id, timer_setting_id: post.timer_setting_id })
+    socket.emit("timer_posting", { ...postingStatus, keyDate: moment(new Date()).startOf("date").format("DD_MM_YYYY"), timer_setting_id: post.timer_setting_id  })
   }
 
   const check = async () => {
@@ -46,6 +50,7 @@ async function timerPosting(data, channel, message) {
         accounts.password,
         webs.id AS web_id,
         webs.web_key,
+        webs.web_url,
         forums.id AS forum_id,
         forums.forum_url,
         settings.id AS setting_id,
@@ -53,11 +58,10 @@ async function timerPosting(data, channel, message) {
       `)
     )
     .joinRaw(`
-      JOIN forum_setting ON ( forum_setting.setting_id = settings.id AND forum_setting.is_deleted = false )
       JOIN timer_setting ON ( timer_setting.setting_id = settings.id AND timer_setting.is_deleted = false  )
       JOIN posts ON ( posts.id = settings.post_id )
       JOIN accounts ON ( accounts.id = settings.account_id )
-      JOIN forums ON ( forums.id = forum_setting.forum_id )
+      JOIN forums ON ( forums.id = timer_setting.forum_id )
       JOIN webs ON ( webs.id = accounts.web_id AND webs.id = forums.web_id )
     `)
     .whereRaw(`
@@ -66,7 +70,6 @@ async function timerPosting(data, channel, message) {
       AND timer_setting.from_date <= NOW()::DATE AND timer_setting.to_date >= NOW()::DATE
       AND timer_setting.timer_at = :timer_at
       AND timer_setting.is_deleted = false
-      AND forum_setting.is_deleted = false
     `, { timer_at })
     .orderByRaw(`
       webs.id,
@@ -95,7 +98,7 @@ async function timerPosting(data, channel, message) {
   // await chamenuoicon.post(posts.filter((post) => post.web_key === chamenuoicon.key), { callback, error, check });
   // await lamchame.post(posts.filter((post) => post.web_key === lamchame.key), { callback, error, check });
 
-  // await channel.ack(message); 
+  await channel.ack(message); 
 }
-timerPosting({ timer_at: "00:30" })
+
 module.exports = timerPosting;

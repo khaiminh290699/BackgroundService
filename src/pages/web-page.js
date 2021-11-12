@@ -175,7 +175,11 @@ class WebPage {
   
           // login
           if (i === 0 || post.account_id != posts[i - 1].account_id) {
-            await this.login(post.username, new Buffer(post.password, "base64").toString("ascii"), post.web_id, post.web_url);
+            try {
+              await this.login(post.username, new Buffer(post.password, "base64").toString("ascii"), post.web_id, post.web_url);
+            } catch (err) {
+              throw new Error("Login Fail");
+            }
           }
   
           // posting
