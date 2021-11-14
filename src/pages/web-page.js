@@ -75,7 +75,16 @@ class WebPage {
 
       console.log(xpath)
       try {
-        element = await this.driver.wait(until.elementLocated(By.xpath(xpath)), 1000);
+        if (action.number != null) {
+          const elements = await this.driver.wait(until.elementsLocated(By.xpath(xpath), 1000));
+          element = elements[action.number >= 0 ? action.number : ( elements.length + action.number )];
+
+          if (!element) {
+            throw new Error("Element not found");
+          }
+        } else {
+          element = await this.driver.wait(until.elementLocated(By.xpath(xpath)), 1000);
+        }
       } catch (err) {
         console.log(err)
         throw new Error(`Element not found ${xpath}`)
@@ -131,25 +140,38 @@ class WebPage {
 
     const actions = await model.query().where({ web_id: web.id, type: "get_forum" }).orderBy("order_number");
     
-    let element = null;
+    let result = {
+      web_id: web.id,
+      post_url: url,
+      web_url: web.web_url,
+      web_key: web.web_key,
+    };
     for (let i = 0; i < actions.length; i++) {
+      let element = await this.action(actions[i], {});
       if (actions[i].action === "find") {
-        element = await this.action(actions[i], {});
-        break;
+        const keys = Object.keys(actions[i].output);
+        for (let j = 0; j < keys.length; j++) {
+          const value = actions[i].output[keys[j]];
+          if (keys[j] === "text") {
+            result = {
+              ...result,
+              [value]: await element.getText()
+            }
+          } else {
+            result = {
+              ...result,
+              [value]: await element.getAttribute(keys[j])
+            }
+          }
+        }
       }
     }
-    if (element) {
-      return {
-        web_id: web.id,
-        post_url: url,
-        web_url: web.web_url,
-        web_key: web.web_key,
-        forum_name: await element.getText(),
-        forum_url: await element.getAttribute("href")
-      }
+  
+    if (!result.forum_url || !result.forum_name) {
+      throw new Error("Miss forum url and forum name")
     }
 
-    return null;
+    return result;
   }
 
   each = async (post) => {

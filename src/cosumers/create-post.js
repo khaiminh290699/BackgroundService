@@ -115,6 +115,8 @@ async function createPost(data, channel, message) {
       posts.id = :post_id
       AND progressings.id = :progressing_id
       AND posting_status.status != 'success'
+      AND forums.is_deleted = false
+      AND accounts.disable = false
     `, { post_id: progressing.post_id, progressing_id: progressing.id })
     .orderByRaw(`
       webs.id,

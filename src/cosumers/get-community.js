@@ -43,14 +43,19 @@ async function getCommunity(data, channel, message) {
           messages: [err.message]
         })
       }
-
-      console.log(errorGetForums)
     }
   }
 
   await page.close();
   if (forums.length) {
-    await modelForum.query().insert(forums).onConflict(["forum_url"]).merge().returning(["*"]);
+    forums.is_deleted = false;
+    const list = await modelForum.query().whereIn("forum_url", forums.map((forum) => forum.forum_url)).where({ is_deleted: false });
+    const data = forums.filter((forum) => {
+      return !list.some((item) => item.forum_url === forum.forum_url)
+    })
+    if (data.length) {
+      await modelForum.query().insert(data);
+    }
   }
   
   forums = await modelForum.query().join("webs", "webs.id", "forums.web_id").select(

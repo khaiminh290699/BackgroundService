@@ -67,6 +67,7 @@ async function timerPosting(data, channel, message) {
     .whereRaw(`
       accounts.disable = false
       AND posts.is_deleted = false
+      AND forums.is_deleted = false
       AND timer_setting.from_date <= NOW()::DATE AND timer_setting.to_date >= NOW()::DATE
       AND timer_setting.timer_at = :timer_at
       AND timer_setting.is_deleted = false
