@@ -7,6 +7,8 @@ const WebPage = require("../pages/web-page");
 async function timerPosting(data, channel, message) {
   const { timer_at } = data;
 
+  console.log(`Running timer posting at ${ timer_at }`)
+
   const db = new DB();
   const modelSetting = new ModelSetting(db);
 
@@ -99,6 +101,7 @@ async function timerPosting(data, channel, message) {
   // await chamenuoicon.post(posts.filter((post) => post.web_key === chamenuoicon.key), { callback, error, check });
   // await lamchame.post(posts.filter((post) => post.web_key === lamchame.key), { callback, error, check });
 
+  await socket.disconnect();
   await channel.ack(message); 
 }
 

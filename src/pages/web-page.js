@@ -55,7 +55,12 @@ class WebPage {
         })
       }
 
-      xpath = `${action.tag}[${xpath}]`;
+      if (xpath) {
+        xpath = `${action.tag}[${xpath}]`;
+      } else {
+        xpath = `${action.tag}`
+      }
+      
       if (!action.ancestors.length) {
         xpath = `//${xpath}`
       }
@@ -112,7 +117,7 @@ class WebPage {
 
   login = async (username, password, web_id, web_url) => {
     const model = new ModelAction(this.db);
-    const actions = await model.query().where({ web_id, type: "login" }).orderBy("order_number");
+    const actions = await model.listActionsByWeb(web_id, "login");
     await this.driver.get(web_url)
     for (let i = 0; i < actions.length; i++) {
       await this.action(actions[i], { username, password });
@@ -121,7 +126,7 @@ class WebPage {
 
   logout = async (web_id) => {
     const model = new ModelAction(this.db);
-    const actions = await model.query().where({ web_id, type: "logout" }).orderBy("order_number");
+    const actions = await model.listActionsByWeb(web_id, "logout");
     for (let i = 0; i < actions.length; i++) {
       await this.action(actions[i], { });
     }
@@ -138,7 +143,7 @@ class WebPage {
 
     const web = await modelWeb.findOne({ web_url });
 
-    const actions = await model.query().where({ web_id: web.id, type: "get_forum" }).orderBy("order_number");
+    const actions = await model.listActionsByWeb(web.id, "get_forum");
     
     let result = {
       web_id: web.id,
@@ -176,7 +181,7 @@ class WebPage {
 
   each = async (post) => {
     const model = new ModelAction(this.db);
-    const actions = await model.query().where({ web_id: post.web_id, type: "posting" }).orderBy("order_number");
+    const actions = await model.listActionsByWeb(post.web_id, "posting");
     await this.driver.get(post.forum_url)
     for (let i = 0; i < actions.length; i++) {
       await this.action(actions[i], { ...post });
