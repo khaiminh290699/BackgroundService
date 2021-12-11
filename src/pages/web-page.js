@@ -83,7 +83,6 @@ class WebPage {
         if (action.number != null) {
           const elements = await this.driver.wait(until.elementsLocated(By.xpath(xpath), 2000));
           element = elements[action.number >= 0 ? action.number : ( elements.length + action.number )];
-
           if (!element) {
             throw new Error("Element not found");
           }
@@ -91,8 +90,9 @@ class WebPage {
           element = await this.driver.wait(until.elementLocated(By.xpath(xpath)), 2000);
         }
       } catch (err) {
-        console.log(err)
-        throw new Error(`Element not found ${xpath}`)
+        if (action.action != "not_found") {
+          throw new Error(`Element not found ${xpath}`)
+        }
       }
 
       switch(action.action) {
@@ -104,6 +104,12 @@ class WebPage {
           await element.sendKeys(data[action.input])
           break;
         } 
+        case "not_found": {
+          if (element) {
+            throw new Error(`Element ${xpath} exist while expect not found `)
+          }
+          break;
+        }
       }
       
       if (action.action === "find") {
@@ -191,6 +197,7 @@ class WebPage {
       const model = new ModelAction(this.db);
       const actions = await model.listActionsByWeb(post.web_id, "posting");
       await this.driver.get(post.forum_url)
+      await this.sleep(1000);
       for (let i = 0; i < actions.length; i++) {
         await this.action(actions[i], { ...post });
       }
