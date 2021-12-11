@@ -81,14 +81,14 @@ class WebPage {
       console.log(xpath)
       try {
         if (action.number != null) {
-          const elements = await this.driver.wait(until.elementsLocated(By.xpath(xpath), 1000));
+          const elements = await this.driver.wait(until.elementsLocated(By.xpath(xpath), 2000));
           element = elements[action.number >= 0 ? action.number : ( elements.length + action.number )];
 
           if (!element) {
             throw new Error("Element not found");
           }
         } else {
-          element = await this.driver.wait(until.elementLocated(By.xpath(xpath)), 1000);
+          element = await this.driver.wait(until.elementLocated(By.xpath(xpath)), 2000);
         }
       } catch (err) {
         console.log(err)
@@ -116,15 +116,21 @@ class WebPage {
   }
 
   login = async (username, password, web_id, web_url) => {
-    const model = new ModelAction(this.db);
-    const actions = await model.listActionsByWeb(web_id, "login");
-    await this.driver.get(web_url)
-    for (let i = 0; i < actions.length; i++) {
-      await this.action(actions[i], { username, password });
+    await this.init();
+    try {
+      const model = new ModelAction(this.db);
+      const actions = await model.listActionsByWeb(web_id, "login");
+      await this.driver.get(web_url)
+      for (let i = 0; i < actions.length; i++) {
+        await this.action(actions[i], { username, password });
+      }
+    } catch (err) {
+      throw new Error(`Login Fail: ${ err.message }`)
     }
   }
 
   logout = async (web_id) => {
+    await this.init();
     const model = new ModelAction(this.db);
     const actions = await model.listActionsByWeb(web_id, "logout");
     for (let i = 0; i < actions.length; i++) {
@@ -180,32 +186,40 @@ class WebPage {
   }
 
   each = async (post) => {
-    const model = new ModelAction(this.db);
-    const actions = await model.listActionsByWeb(post.web_id, "posting");
-    await this.driver.get(post.forum_url)
-    for (let i = 0; i < actions.length; i++) {
-      await this.action(actions[i], { ...post });
+    await this.init();
+    try {
+      const model = new ModelAction(this.db);
+      const actions = await model.listActionsByWeb(post.web_id, "posting");
+      await this.driver.get(post.forum_url)
+      for (let i = 0; i < actions.length; i++) {
+        await this.action(actions[i], { ...post });
+      }
+    } catch (err) {
+      throw new Error(`Posting Fail: ${ err.message }`)
     }
   }
 
   post = async (posts, cb) => {
     try {
       const { check, callback, error } = cb;
+      let logined = false;
       await this.init();
       for (let i = 0; i < posts.length && await check(); i++) {
         const post = posts[i];
         try {
 
-          // if (i === 0 || post.web_id != posts[i - 1].web_id) {
-          //   await this.driver.get(post.web_url)
-          // }
+          if (!logined || i === 0 || post.web_id != posts[i - 1].web_id) {
+            await this.driver.get(post.web_url)
+          }
   
           // login
-          if (i === 0 || post.account_id != posts[i - 1].account_id) {
+          if (!logined || i === 0 || post.account_id != posts[i - 1].account_id) {
             try {
               await this.login(post.username, new Buffer(post.password, "base64").toString("ascii"), post.web_id, post.web_url);
+              logined = true;
             } catch (err) {
-              throw new Error("Login Fail");
+              logined = false;
+              throw err;
             }
           }
   
@@ -217,7 +231,6 @@ class WebPage {
             try {
               await this.logout(posts[i].web_id);
             } catch (err) {
-              console.log(err)
               await this.close();
             }
           }
@@ -225,7 +238,6 @@ class WebPage {
           await callback(post);
   
         } catch (err) {
-          console.log(err);
           await error(post, err);
         }
       }
@@ -236,6 +248,7 @@ class WebPage {
 
   close = async () => {
     if (this.driver) {
+      this.sleep(1000);
       await this.driver.close();
     }
   }

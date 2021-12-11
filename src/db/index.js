@@ -11,6 +11,7 @@ const ModelForumSetting = require("./model/forum-setting-model");
 const ModelProgressingPostStatus = require("./model/progressing-post-status-model");
 const ModelAction = require("./model/action-model");
 const ModelTimerStatus = require("./model/timer-status-model");
+const ModelTimerSetting = require("./model/timer-setting-model");
 
 module.exports = {
   DB,
@@ -25,5 +26,6 @@ module.exports = {
   ModelForumSetting,
   ModelProgressingPostStatus,
   ModelAction,
-  ModelTimerStatus
+  ModelTimerStatus,
+  ModelTimerSetting
 }

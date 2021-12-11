@@ -54,7 +54,7 @@ async function getCommunity(data, channel, message) {
       return !list.some((item) => item.forum_url === forum.forum_url)
     })
     if (data.length) {
-      await modelForum.query().insert(data);
+      await modelForum.query().insert(data.map((data) => ({ ...data, is_deleted: false }))).onConflict(["forum_name", "web_id"]).merge();
     }
   }
   
