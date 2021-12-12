@@ -2,6 +2,9 @@ const { Builder, until, By, Key } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 const { ModelAction, ModelWeb } = require("../db");
 
+const Up = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const Down = "abcdefghijklmnopqrstuvwxyz";
+
 class WebPage {
   constructor(db) {
     this.db = db;
@@ -11,10 +14,17 @@ class WebPage {
 
     if (!this.driver) {
       const options = new chrome.Options();
-      options.addArguments("--disable-notifications");
-      options.addArguments("--disable-popup-blocking"); 
-      options.addArguments("--no-startup-window"); 
-      options.addArguments("--headless");
+      // options.addArguments("--disable-notifications");
+      // options.addArguments("--disable-popup-blocking"); 
+      // options.addArguments("--no-startup-window"); 
+
+      // options.addArguments("--window-size=1920,1080")
+      // options.addArguments("--start-maximized");
+      // options.addArguments("--headless");
+
+      // options.addArguments("--headless");
+
+      // this.driver = await new Builder().forBrowser("chrome").setChromeOptions(options).build();
 
       this.driver = await new Builder().forBrowser("chrome").build();
     }
@@ -41,16 +51,19 @@ class WebPage {
 
       let xpath = null;
 
-      if (action.text) {
-        xpath = `text() = '${action.text}'`
-      }
+      // if (action.text) {
+      //   xpath = `text() = '${action.text}'`
+      // }
 
       if (action.attributes) {
         Object.keys(action.attributes).forEach((key) => {
+          const value = action.attributes[key].field ? data[action.attributes[key].value] : action.attributes[key].value;
+          const lower = value.toLowerCase();
+          const upper = value.toUpperCase();
           if (xpath) {
-            xpath = `${ xpath } and contains(@${ key }, '${action.attributes[key]}')`
+            xpath = `${ xpath } and contains(translate(${ key === "text" ? "text()" : `@${ key }` }, '${lower}', '${upper}'), '${upper}')`;
           } else {
-            xpath = `contains(@${ key }, '${action.attributes[key]}')`
+            xpath = `contains(translate(${ key === "text" ? "text()" : `@${ key }` }, '${lower}', '${upper}'), '${upper}')`
           }
         })
       }
@@ -73,9 +86,9 @@ class WebPage {
           con = `${ con ? 'and' : '' } contains(@class, '${ancestor.class}')`
         }
         if (ancestor.text) {
-          con = `${ con ? 'and' : '' } text{} = '${ancestor.class}'`
+          con = `${ con ? 'and' : '' } text() = '${ancestor.text}'`
         }
-        xpath = `//${ancestor.tag}${con ? `[${con}]` : ''}//${ancestor.axes}::${xpath}`
+        xpath = `//${ancestor.tag}${con ? `[${con}]` : ''}/${ancestor.axes}::${xpath}`
       })
 
       console.log(xpath)
@@ -135,12 +148,12 @@ class WebPage {
     }
   }
 
-  logout = async (web_id) => {
+  logout = async (username, password, web_id, web_url) => {
     await this.init();
     const model = new ModelAction(this.db);
     const actions = await model.listActionsByWeb(web_id, "logout");
     for (let i = 0; i < actions.length; i++) {
-      await this.action(actions[i], { });
+      await this.action(actions[i], { username, password });
     }
   }
 
@@ -215,9 +228,9 @@ class WebPage {
         const post = posts[i];
         try {
 
-          if (!logined || i === 0 || post.web_id != posts[i - 1].web_id) {
-            await this.driver.get(post.web_url)
-          }
+          // if (!logined || i === 0 || post.web_id != posts[i - 1].web_id) {
+          //   await this.driver.get(post.web_url)
+          // }
   
           // login
           if (!logined || i === 0 || post.account_id != posts[i - 1].account_id) {
@@ -236,7 +249,7 @@ class WebPage {
           // logout
           if (i + 1 >= posts.length || posts[i + 1].account_id != post.account_id) {
             try {
-              await this.logout(posts[i].web_id);
+              await this.logout(post.username, new Buffer(post.password, "base64").toString("ascii"), post.web_id, post.web_url);
             } catch (err) {
               await this.close();
             }
@@ -245,6 +258,7 @@ class WebPage {
           await callback(post);
   
         } catch (err) {
+          console.log(err)
           await error(post, err);
         }
       }
@@ -255,8 +269,8 @@ class WebPage {
 
   close = async () => {
     if (this.driver) {
-      this.sleep(1000);
       await this.driver.close();
+      this.driver = null;
     }
   }
 

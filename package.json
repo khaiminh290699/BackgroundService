@@ -13,7 +13,7 @@
     "amqplib": "^0.8.0",
     "axios": "^0.21.4",
     "chromedriver": "*",
-    "geckodriver": "^2.0.4",
+    "geckodriver": "*",
     "googleapis": "^87.0.0",
     "knex": "^0.95.11",
     "moment": "^2.29.1",

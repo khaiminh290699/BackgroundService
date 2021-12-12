@@ -30,6 +30,7 @@ class ModelTimerSetting extends Model {
         webs.web_url,
         forums.id AS forum_id,
         forums.forum_url,
+        forums.forum_name,
         settings.id AS setting_id,
         timer_setting.id AS timer_setting_id
       `)

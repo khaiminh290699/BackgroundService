@@ -20,6 +20,7 @@ class ModelPostingStatus extends Model {
         webs.web_url,
         forums.id AS forum_id,
         forums.forum_url,
+        forums.forum_name,
         settings.id AS setting_id,
         posting_status.id AS posting_status_id
       `)
