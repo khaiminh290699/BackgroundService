@@ -3,10 +3,10 @@ const DB = require("../connect/db")
 
 class Model {
   /**
-   * @param {DB} db The date
+   * @param {knex.Knex} db The date
   */
   constructor(db, trx) {
-    this.DB = db.DB || new DB().DB;
+    this.DB = db;
     this.trx = trx;
   }
 

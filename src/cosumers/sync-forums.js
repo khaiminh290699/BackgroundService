@@ -6,7 +6,7 @@ async function syncForums(data, channel, message) {
   const lamchame = new LamChaMe();
   const chamenuoicon = new ChaMeNuoiCon();
 
-  const db = new DB();
+  const { DB: db } = new DB();
   const modelWeb = new ModelWeb(db);
   const modelForum = new ModelForum(db);
 
@@ -21,7 +21,7 @@ async function syncForums(data, channel, message) {
   const { id: lamchame_id } = await modelWeb.findOne({ web_key: lamchame.key });
   await modelForum.query().insert((await lamchame.syncForums()).map(forum => ({ ...forum, web_id: lamchame_id, is_deleted: false }))).onConflict(["web_id", "forum_name"]).merge();
   
-  await db.DB.destroy();
+  await db.destroy();
   return await channel.ack(message);
 }
 

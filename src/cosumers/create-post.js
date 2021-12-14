@@ -5,7 +5,7 @@ const WebPage = require("../pages/web-page");
 
 async function createPost(data, channel, message) {
   const { progressing: { id } } = data;
-  const db = new DB();
+  const { DB: db } = new DB();
 
   const page = new WebPage(db);
 
@@ -78,7 +78,7 @@ async function createPost(data, channel, message) {
     await modelProgressing.updateOne(progressing);
     await socket.emit("progressing", { ...progressing }, async () => { await socket.close(); });
   } finally {
-    await db.DB.destroy();
+    await db.destroy();
     await channel.ack(message);
   }
 }

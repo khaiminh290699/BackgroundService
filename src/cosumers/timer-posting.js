@@ -8,7 +8,7 @@ async function timerPosting(data, channel, message) {
 
   console.log(`Running timer posting at ${ timer_at }`)
 
-  const db = new DB();
+  const { DB: db } = new DB();
   const modelTimerSetting = new ModelTimerSetting(db);
 
   const page = new WebPage(db);
@@ -53,7 +53,7 @@ async function timerPosting(data, channel, message) {
     await socket.disconnect();
     await channel.ack(message); 
   } finally {
-    await db.DB.destroy();
+    await db.destroy();
   }
 }
 

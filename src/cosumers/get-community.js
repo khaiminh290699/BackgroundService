@@ -7,7 +7,7 @@ async function getCommunity(data, channel, message) {
   const { responseKey, urls = [] } = data;
   let communities = [], selectedForums = {}, errorGetForums = [];
 
-  const db = new DB();
+  const { DB: db } = new DB();
   const modelWeb = new ModelWeb(db);
   const modelForum = new ModelForum(db);
 
@@ -90,7 +90,7 @@ async function getCommunity(data, channel, message) {
     await socket.close();
   });
 
-  await db.DB.destroy();
+  await db.destroy();
   await channel.ack(message);
 }
 
