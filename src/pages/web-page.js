@@ -260,6 +260,7 @@ class WebPage {
         } catch (err) {
           console.log(err)
           await error(post, err);
+          await this.close();
         }
       }
     } finally {
