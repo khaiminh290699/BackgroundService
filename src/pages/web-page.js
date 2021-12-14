@@ -252,6 +252,7 @@ class WebPage {
               await this.logout(post.username, new Buffer(post.password, "base64").toString("ascii"), post.web_id, post.web_url);
             } catch (err) {
               await this.close();
+              logined = false;
             }
           }
   
@@ -261,6 +262,7 @@ class WebPage {
           console.log(err)
           await error(post, err);
           await this.close();
+          logined = false;
         }
       }
     } finally {
