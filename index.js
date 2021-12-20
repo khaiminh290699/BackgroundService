@@ -11,4 +11,3 @@ rabbitmq.consume({ queue: "sync_forums" }, syncForums);
 rabbitmq.consume({ queue: "get_community" }, getCommunity)
 
 rabbitmq.consume({ queue: "timer_posting" }, timerPosting)
-

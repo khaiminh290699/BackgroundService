@@ -46,6 +46,7 @@ async function getCommunity(data, channel, message) {
     }
   }
 
+  console.log(forums)
   await page.close();
   if (forums.length) {
     forums.is_deleted = false;

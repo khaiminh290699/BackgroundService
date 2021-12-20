@@ -77,7 +77,7 @@ class WebPage {
       if (!action.ancestors.length) {
         xpath = `//${xpath}`
       }
-      action.ancestors.map((ancestor) => {
+      action.ancestors.reverse().map((ancestor) => {
         let con = ``;
         if (ancestor.id) {
           con = `${ con ? 'and' : '' } contains(@id, '${ancestor.id}')`
@@ -103,6 +103,7 @@ class WebPage {
           element = await this.driver.wait(until.elementLocated(By.xpath(xpath)), 2000);
         }
       } catch (err) {
+        console.log(err)
         if (action.action != "not_found") {
           throw new Error(`Element not found ${xpath}`)
         }
